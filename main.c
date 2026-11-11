@@ -7,7 +7,6 @@
 PSP_MODULE_INFO("Sonic2D_PSP", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
-// Función para salir limpiamente del juego en la PSP
 int exit_callback(int arg1, int arg2, int common) {
     sceKernelExitGame();
     return 0;
@@ -31,9 +30,8 @@ int main(void) {
     pspDebugScreenInit();
     SetupCallbacks();
 
-    // Posición inicial de nuestro personaje tipo Sonic
     int x = 20;
-    int y = 200;
+    int y = 200; // Variable integrada correctamente en la vista
     int velocidad = 2;
 
     SceCtrlData pad;
@@ -43,26 +41,23 @@ int main(void) {
     while(1) {
         sceCtrlReadBufferPositive(&pad, 1);
 
-        // Movimiento horizontal (simulando velocidad y físicas rápidas)
         if (pad.Buttons & PSP_CTRL_RIGHT) {
             x += velocidad;
-            if (x > 450) x = 450; // Límite de pantalla
+            if (x > 450) x = 450;
         }
         if (pad.Buttons & PSP_CTRL_LEFT) {
             x -= velocidad;
             if (x < 10) x = 10;
         }
 
-        // Si se presiona la X, salta (simulación visual en pantalla)
         int saltando = 0;
         if (pad.Buttons & PSP_CTRL_CROSS) {
-            y = 150; // Altura del salto
+            y = 150; 
             saltando = 1;
         } else {
-            y = 200; // Piso normal
+            y = 200; 
         }
 
-        // Limpiar pantalla y dibujar la escena en tiempo real
         pspDebugScreenSetXY(0, 0);
         pspDebugScreenPrintf("========================================\n");
         pspDebugScreenPrintf("      PROTOTIPO 2D - ESTILO SONIC       \n");
@@ -70,14 +65,12 @@ int main(void) {
         pspDebugScreenPrintf("  Controles:\n");
         pspDebugScreenPrintf("  [Cruzeta Izq / Der] -> Correr\n");
         pspDebugScreenPrintf("  [X]                 -> Saltar\n\n");
-        pspDebugScreenPrintf("  Estado: %s\n", saltando ? "SALTANDO (¡Spin Dash!)" : "CORRIENDO EN ZONA VERDE");
+        pspDebugScreenPrintf("  Estado: %s (Altura Y: %d)\n", saltando ? "SALTANDO" : "CORRIENDO", y);
 
-        // Dibujar el escenario y al personaje gráficamente en el buffer de texto/pantalla
-        // (Espacios en blanco para simular el movimiento del personaje en el nivel)
         int i;
         pspDebugScreenPrintf("\n\n\n\n");
         for(i = 0; i < x / 10; i++) pspDebugScreenPrintf(" ");
-        pspDebugScreenPrintf("(O_O) -> Sonic\n"); // Representación visual del personaje
+        pspDebugScreenPrintf("(O_O) -> Sonic\n");
 
         pspDebugScreenPrintf("\n----------------------------------------\n");
         pspDebugScreenPrintf("Piso: ==================================\n");
