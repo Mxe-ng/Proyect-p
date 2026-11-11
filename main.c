@@ -6,10 +6,9 @@
 #include <stdio.h>
 #include <malloc.h>
 
-PSP_MODULE_INFO("Sonic2D_Gu", 0, 1, 1);
+PSP_MODULE_INFO("NarutoBattle_PSP", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
-// Buffer de comandos para el motor gráfico de la PSP
 static unsigned int __attribute__((aligned(16))) list[256];
 
 int exit_callback(int arg1, int arg2, void *common) {
@@ -31,7 +30,6 @@ int SetupCallbacks(void) {
     return thid;
 }
 
-// Estructura para vértices de gráficos 2D con color
 typedef struct {
     unsigned int color;
     short x, y, z;
@@ -55,7 +53,6 @@ void drawRect(int x, int y, int w, int h, unsigned int color) {
 int main(void) {
     SetupCallbacks();
 
-    // Inicializar el sistema gráfico GU
     sceGuInit();
     sceGuStart(GU_DIRECT, list);
     sceGuDrawBuffer(GU_PSM_8888, (void*)0, 512);
@@ -69,8 +66,9 @@ int main(void) {
     sceGuSync(0, 0);
     sceGuDisplay(1);
 
-    int x = 50;
-    int y = 160;
+    int p1_x = 60;
+    int p2_x = 350;
+    int p1_vida = 150; // Ancho de la barra de vida
     int velocidad = 3;
 
     SceCtrlData pad;
@@ -80,38 +78,50 @@ int main(void) {
     while(1) {
         sceCtrlReadBufferPositive(&pad, 1);
 
+        // Movimiento del jugador 1 (Naruto)
         if (pad.Buttons & PSP_CTRL_RIGHT) {
-            x += velocidad;
-            if (x > 420) x = 420;
+            p1_x += velocidad;
+            if (p1_x > 380) p1_x = 380;
         }
         if (pad.Buttons & PSP_CTRL_LEFT) {
-            x -= velocidad;
-            if (x < 10) x = 10;
+            p1_x -= velocidad;
+            if (p1_x < 10) p1_x = 10;
         }
 
-        if (pad.Buttons & PSP_CTRL_CROSS) {
-            y = 120; // Salto
-        } else {
-            y = 160; // Piso
+        // Simular daño si se presiona un botón (ej: CIRCULO para golpear)
+        if (pad.Buttons & PSP_CTRL_CIRCLE) {
+            if (p1_x + 40 >= p2_x) {
+                if (p1_vida > 0) p1_vida -= 1; // El rival recibe daño
+            }
         }
 
-        // Renderizado gráfico de la escena
+        // Renderizado del juego
         sceGuStart(GU_DIRECT, list);
-        sceGuClearColor(0xFF201010); // Color de fondo (Cielo oscuro / nocturno)
+        sceGuClearColor(0xFF101018); // Fondo de arena / escenario oscuro
         sceGuClearDepth(0);
         sceGuClear(GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT);
 
-        // Dibujar el suelo (Rectángulo verde)
-        drawRect(0, 200, 480, 72, 0xFF00AA00);
+        // 1. Dibujar el Suelo del escenario
+        drawRect(0, 210, 480, 62, 0xFF225588); // Piso azulado/adoquinado
 
-        // Dibujar al personaje estilo Sonic (Rectángulo azul brillante)
-        drawRect(x, y, 32, 40, 0xFFFF0000); // Color en formato AABBGGRR (Azul brillante)
+        // 2. Dibujar HUD / Barra de Vida superior (Estilo Ninja Storm)
+        drawRect(20, 15, 160, 16, 0xFF000000); // Fondo barra P1
+        drawRect(22, 17, p1_vida, 12, 0xFF00FF00); // Vida verde P1
+
+        drawRect(300, 15, 160, 16, 0xFF000000); // Fondo barra Rival
+        drawRect(302, 17, 140, 12, 0xFF0000FF); // Vida roja Rival
+
+        // 3. Dibujar Personaje 1 (Naruto - Rectángulo Naranja/Amarillo)
+        drawRect(p1_x, 155, 32, 55, 0xFF0077FF); 
+
+        // 4. Dibujar Personaje 2 (Rival - Rectángulo Rojo)
+        drawRect(p2_x, 155, 32, 55, 0xFF2222CC); 
 
         sceGuFinish();
         sceGuSync(0, 0);
 
         sceDisplayWaitVblankStart();
-        sceGuSwapBuffers();
+    t    sceGuSwapBuffers();
     }
 
     sceGuTerm();
