@@ -8,8 +8,7 @@ ASFLAGS = $(CFLAGS)
 LIBS = -lpspgu -lpspgum -lm
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = PSP Project HD
+PSP_EBOOT_TITLE = YouTube Player PSP
 
 PSPSDK := $(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
-
