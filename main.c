@@ -7,13 +7,13 @@
 PSP_MODULE_INFO("Sonic2D_PSP", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
-int exit_callback(int arg1, int arg2, int common) {
+int exit_callback(int arg1, int arg2, void *common) {
     sceKernelExitGame();
     return 0;
 }
 
 int CallbackThread(SceSize args, void *argp) {
-    int cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
+    int cbid = sceKernelCreateCallback("Exit Callback", (void*)exit_callback, NULL);
     sceKernelRegisterExitCallback(cbid);
     sceKernelSleepThreadCB();
     return 0;
@@ -31,7 +31,7 @@ int main(void) {
     SetupCallbacks();
 
     int x = 20;
-    int y = 200; // Variable integrada correctamente en la vista
+    int y = 200;
     int velocidad = 2;
 
     SceCtrlData pad;
