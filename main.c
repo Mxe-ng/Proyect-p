@@ -4,11 +4,11 @@
 #include <pspctrl.h>
 #include <stdlib.h>
 
-PSP_MODULE_INFO("Juego2DPSP", 0, 1, 0);
+PSP_MODULE_INFO("Sonic2D_PSP", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
-/* Callback para salir del juego correctamente desde el menú */
-int exit_callback(int arg1, int arg2, void *common) {
+// Función para salir limpiamente del juego en la PSP
+int exit_callback(int arg1, int arg2, int common) {
     sceKernelExitGame();
     return 0;
 }
@@ -20,100 +20,68 @@ int CallbackThread(SceSize args, void *argp) {
     return 0;
 }
 
-void setupCallbacks(void) {
+int SetupCallbacks(void) {
     int thid = sceKernelCreateThread("update_thread", CallbackThread, 0x11, 0xFA0, 0, 0);
-    if (thid >= 0) {
-        sceKernelStartThread(thid, 0, 0);
-    }
+    if (thid >= 0)
+        sceKernelStartThread(thid, 0, NULL);
+    return thid;
 }
 
 int main(void) {
     pspDebugScreenInit();
-    setupCallbacks();
+    SetupCallbacks();
 
-    // Configurar lectura de controles digitales (cruceta y botones)
-    sceCtrlSetSamplingCycle(0);
-    sceCtrlSetSamplingMode(PSP_CTRL_MODE_DIGITAL);
+    // Posición inicial de nuestro personaje tipo Sonic
+    int x = 20;
+    int y = 200;
+    int velocidad = 2;
+
     SceCtrlData pad;
+    sceCtrlSetSamplingCycle(0);
+    sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 
-    // Variables del jugador y obstáculo
-    int player_x = 240; // Centro de la pantalla de la PSP (480x272)
-    int player_y = 230;
-    
-    int obstacle_x = rand() % 440;
-    int obstacle_y = 0;
-    int obstacle_speed = 3;
-
-    int score = 0;
-    int game_over = 0;
-
-    while (1) {
+    while(1) {
         sceCtrlReadBufferPositive(&pad, 1);
 
-        if (!game_over) {
-            // Movimiento del jugador con la cruceta izquierda / derecha
-            if (pad.Buttons & PSP_CTRL_LEFT)  player_x -= 6;
-            if (pad.Buttons & PSP_CTRL_RIGHT) player_x += 6;
-
-            // Limitar al jugador dentro de los bordes de la pantalla
-            if (player_x < 10)  player_x = 10;
-            if (player_x > 450) player_x = 450;
-
-            // Mover el obstáculo hacia abajo
-            obstacle_y += obstacle_speed;
-
-            // Si el obstáculo llega al fondo, reaparece arriba y suma puntos
-            if (obstacle_y > 250) {
-                obstacle_y = 0;
-                obstacle_x = rand() % 440;
-                score += 10;
-                // Aumentar dificultad gradualmente
-                if (score % 50 == 0) obstacle_speed++;
-            }
-
-            // Detección de colisión simple (Caja de impacto)
-            if (obstacle_y >= 210 && obstacle_y <= 235) {
-                if (player_x >= obstacle_x - 15 && player_x <= obstacle_x + 25) {
-                    game_over = 1; // ¡Colisión!
-                }
-            }
-        } else {
-            // Reiniciar juego con el botón START
-            if (pad.Buttons & PSP_CTRL_START) {
-                player_x = 240;
-                obstacle_y = 0;
-                score = 0;
-                obstacle_speed = 3;
-                game_over = 0;
-            }
+        // Movimiento horizontal (simulando velocidad y físicas rápidas)
+        if (pad.Buttons & PSP_CTRL_RIGHT) {
+            x += velocidad;
+            if (x > 450) x = 450; // Límite de pantalla
+        }
+        if (pad.Buttons & PSP_CTRL_LEFT) {
+            x -= velocidad;
+            if (x < 10) x = 10;
         }
 
-        // --- RENDERIZADO EN PANTALLA ---
-        pspDebugScreenClear();
-
-        // Interfaz superior
-        pspDebugScreenSetXY(2, 1);
-        pspDebugScreenPrintf("=== MINI JUEGO PSP ===");
-        pspDebugScreenSetXY(35, 1);
-        pspDebugScreenPrintf("PUNTOS: %d", score);
-
-        if (!game_over) {
-            // Dibujar obstáculo (enemigo)
-            pspDebugScreenSetXY(obstacle_x / 8, obstacle_y / 8);
-            pspDebugScreenPrintf("[ X ]");
-
-            // Dibujar jugador
-            pspDebugScreenSetXY(player_x / 8, player_y / 8);
-            pspDebugScreenPrintf("  A  ");
+        // Si se presiona la X, salta (simulación visual en pantalla)
+        int saltando = 0;
+        if (pad.Buttons & PSP_CTRL_CROSS) {
+            y = 150; // Altura del salto
+            saltando = 1;
         } else {
-            // Pantalla de Game Over
-            pspDebugScreenSetXY(18, 12);
-            pspDebugScreenPrintf("¡GAME OVER!");
-            pspDebugScreenSetXY(14, 14);
-            pspDebugScreenPrintf("Pulsa START para reiniciar");
+            y = 200; // Piso normal
         }
 
-        // Sincronizar a 60 FPS estables usando el refresco vertical de la PSP
+        // Limpiar pantalla y dibujar la escena en tiempo real
+        pspDebugScreenSetXY(0, 0);
+        pspDebugScreenPrintf("========================================\n");
+        pspDebugScreenPrintf("      PROTOTIPO 2D - ESTILO SONIC       \n");
+        pspDebugScreenPrintf("========================================\n\n");
+        pspDebugScreenPrintf("  Controles:\n");
+        pspDebugScreenPrintf("  [Cruzeta Izq / Der] -> Correr\n");
+        pspDebugScreenPrintf("  [X]                 -> Saltar\n\n");
+        pspDebugScreenPrintf("  Estado: %s\n", saltando ? "SALTANDO (¡Spin Dash!)" : "CORRIENDO EN ZONA VERDE");
+
+        // Dibujar el escenario y al personaje gráficamente en el buffer de texto/pantalla
+        // (Espacios en blanco para simular el movimiento del personaje en el nivel)
+        int i;
+        pspDebugScreenPrintf("\n\n\n\n");
+        for(i = 0; i < x / 10; i++) pspDebugScreenPrintf(" ");
+        pspDebugScreenPrintf("(O_O) -> Sonic\n"); // Representación visual del personaje
+
+        pspDebugScreenPrintf("\n----------------------------------------\n");
+        pspDebugScreenPrintf("Piso: ==================================\n");
+
         sceDisplayWaitVblankStart();
     }
 
