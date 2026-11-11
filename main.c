@@ -5,6 +5,7 @@
 #include <pspdisplay.h>
 #include <pspctrl.h>
 #include <psprtc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -130,7 +131,7 @@ int main(void) {
             for (int i = 0; i < MAXB; i++) if (bl[i].on) {
                 bl[i].x += bl[i].vx; bl[i].y += bl[i].vy;
                 if (bl[i].x < bx - 10 || bl[i].x > bx + bw + 10 ||
-                    bl[i].y < by - 10 || bl[i].y > bx + bh + 200) bl[i].on = 0;
+                    bl[i].y < by - 10 || bl[i].y > by + bh + 200) bl[i].on = 0;
                 if (bl[i].y > by + bh + 10) bl[i].on = 0;
                 if (fabsf(bl[i].x - (px + 3)) < 6 && fabsf(bl[i].y - (py + 3)) < 6) {
                     bl[i].on = 0; hp -= 3;
