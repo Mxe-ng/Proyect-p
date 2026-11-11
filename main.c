@@ -18,7 +18,6 @@ PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 #define STRIDE 512
 #define MAXB 96
 
-typedef unsigned int u32;
 
 static u32 *fb[2];
 static int cur = 0;
