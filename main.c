@@ -4,12 +4,12 @@
 #include <pspgu.h>
 #include <pspgum.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <string.h>
 
-PSP_MODULE_INFO("NarutoBattle_PSP", 0, 1, 1);
-PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
+PSP_MODULE_INFO("PSP_YouTube_Player", 0, 1, 1);
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
-static unsigned int __attribute__((aligned(16))) list[256];
+static unsigned int __attribute__((aligned(16))) list[262144];
 
 int exit_callback(int arg1, int arg2, void *common) {
     sceKernelExitGame();
@@ -50,6 +50,21 @@ void drawRect(int x, int y, int w, int h, unsigned int color) {
     sceGuDrawArray(GU_SPRITES, GU_COLOR_8888 | GU_VERTEX_16BIT | GU_TRANSFORM_2D, 2, 0, vertices);
 }
 
+// Estructura de un video de YouTube simulado
+typedef struct {
+    char title[64];
+    char channel[32];
+    char duration[16];
+    char views[16];
+} YTVideo;
+
+YTVideo playlist[4] = {
+    {"Naruto Shippuden - Opening 3 Silhouette [HD]", "Sony Music Anime", "3:25", "45M views"},
+    {"Cómo programar en C para PlayStation Portable", "DevPSP Official", "15:40", "120K views"},
+    {"Lo-Fi Hip Hop Radio - Beats to Study / Relax", "Lofi Girl", "LIVE", "2.4M watching"},
+    {"Gameplay Test Homebrew PSP 2026", "Mxe-ng Dev", "8:12", "5.1K views"}
+};
+
 int main(void) {
     SetupCallbacks();
 
@@ -58,18 +73,21 @@ int main(void) {
     sceGuDrawBuffer(GU_PSM_8888, (void*)0, 512);
     sceGuDispBuffer(480, 272, (void*)0x88000, 512);
     sceGuDepthBuffer((void*)0x110000, 512);
-    sceGuOffset(260 / 2, 272 / 2);
-    sceGuViewport(480 / 2, 272 / 2, 480 / 2, 272 / 2);
+    sceGuOffset(2048 - (480 / 2), 2048 - (272 / 2));
+    sceGuViewport(2048, 2048, 480, 272);
     sceGuDepthRange(0xcf7f, 0x0f7f);
     sceGuEnable(GU_SCISSOR_TEST);
+    sceGuScissor(0, 0, 480, 272);
     sceGuFinish();
     sceGuSync(0, 0);
     sceGuDisplay(1);
 
-    int p1_x = 60;
-    int p2_x = 350;
-    int p1_vida = 150; // Ancho de la barra de vida
-    int velocidad = 3;
+    int app_state = 0; // 0: Explorador / Home, 1: Reproduciendo Video
+    int selected_index = 0;
+    
+    // Controles de reproducción
+    int is_playing = 1;
+    int progress = 40; // Ancho de la barra de progreso reproducida
 
     SceCtrlData pad;
     sceCtrlSetSamplingCycle(0);
@@ -78,50 +96,112 @@ int main(void) {
     while(1) {
         sceCtrlReadBufferPositive(&pad, 1);
 
-        // Movimiento del jugador 1 (Naruto)
-        if (pad.Buttons & PSP_CTRL_RIGHT) {
-            p1_x += velocidad;
-            if (p1_x > 380) p1_x = 380;
+        if (app_state == 0) {
+            // --- NAVEGACIÓN EN EL HOME DE YOUTUBE ---
+            if (pad.Buttons & PSP_CTRL_DOWN) {
+                selected_index = (selected_index + 1) % 4;
+                sceKernelDelayThread(150000);
+            }
+            if (pad.Buttons & PSP_CTRL_UP) {
+                selected_index = (selected_index - 1 + 4) % 4;
+                sceKernelDelayThread(150000);
+            }
+            // Entrar a reproducir video con la X
+            if (pad.Buttons & PSP_CTRL_CROSS) {
+                app_state = 1;
+                is_playing = 1;
+                progress = 50;
+                sceKernelDelayThread(250000);
+            }
         }
-        if (pad.Buttons & PSP_CTRL_LEFT) {
-            p1_x -= velocidad;
-            if (p1_x < 10) p1_x = 10;
-        }
-
-        // Simular daño si se presiona un botón (ej: CIRCULO para golpear)
-        if (pad.Buttons & PSP_CTRL_CIRCLE) {
-            if (p1_x + 40 >= p2_x) {
-                if (p1_vida > 0) p1_vida -= 1; // El rival recibe daño
+        else if (app_state == 1) {
+            // --- REPRODUCTOR DE VIDEO ACTIVO ---
+            // Pausar / Reanudar con X
+            if (pad.Buttons & PSP_CTRL_CROSS) {
+                is_playing = 1 - is_playing;
+                sceKernelDelayThread(180000);
+            }
+            // Avanzar progreso con la cruceta derecha
+            if (pad.Buttons & PSP_CTRL_RIGHT && progress < 420) {
+                progress += 5;
+            }
+            // Retroceder progreso con la cruceta izquierda
+            if (pad.Buttons & PSP_CTRL_LEFT && progress > 40) {
+                progress -= 5;
+            }
+            // Salir al menú principal con Círculo (O)
+            if (pad.Buttons & PSP_CTRL_CIRCLE) {
+                app_state = 0;
+                sceKernelDelayThread(250000);
             }
         }
 
-        // Renderizado del juego
+        // --- RENDERIZADO GRÁFICO ---
         sceGuStart(GU_DIRECT, list);
-        sceGuClearColor(0xFF101018); // Fondo de arena / escenario oscuro
+        sceGuClearColor(0xFF121212); // Fondo oscuro clásico de YouTube App
         sceGuClearDepth(0);
         sceGuClear(GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT);
 
-        // 1. Dibujar el Suelo del escenario
-        drawRect(0, 210, 480, 62, 0xFF225588); // Piso azulado/adoquinado
+        if (app_state == 0) {
+            // --- HEADER DE YOUTUBE ---
+            drawRect(0, 0, 480, 35, 0xFF212121);
+            // Icono de YouTube (Caja Roja simulada)
+            drawRect(15, 8, 30, 18, 0xFF0000FF); // Rojo en formato BGR -> 0xFF (Rojo)
+            // Barra de búsqueda simulada arriba
+            drawRect(60, 8, 320, 18, 0xFF383838);
 
-        // 2. Dibujar HUD / Barra de Vida superior (Estilo Ninja Storm)
-        drawRect(20, 15, 160, 16, 0xFF000000); // Fondo barra P1
-        drawRect(22, 17, p1_vida, 12, 0xFF00FF00); // Vida verde P1
+            // --- LISTA DE VIDEOS ---
+            for (int i = 0; i < 4; i++) {
+                int y_pos = 45 + (i * 54);
+                unsigned int bg_color = (i == selected_index) ? 0xFF2B2B2B : 0xFF181818;
+                
+                // Elemento de tarjeta de video
+                drawRect(10, y_pos, 460, 48, bg_color);
+                // Cuadro simulado de miniatura de video
+                drawRect(15, y_pos + 4, 64, 40, 0xFF333333);
+                
+                // Indicador de selección lateral rojo
+                if (i == selected_index) {
+                    drawRect(10, y_pos, 4, 48, 0xFF0000FF);
+                }
+            }
+        }
+        else if (app_state == 1) {
+            // --- PANTALLA DE REPRODUCCIÓN (VIDEOS STREAMING SIMULADO) ---
+            // Área principal de video (Pantalla oscura con efecto de reproducción)
+            drawRect(0, 0, 480, 190, 0xFF000000);
 
-        drawRect(300, 15, 160, 16, 0xFF000000); // Fondo barra Rival
-        drawRect(302, 17, 140, 12, 0xFF0000FF); // Vida roja Rival
+            // Simulación visual del contenido en reproducción (Animación central)
+            drawRect(190, 70, 100, 50, 0xFF1F1F1F);
+            if (is_playing) {
+                // Símbolo de reproducción activo (Simulado con bloques)
+                drawRect(232, 85, 16, 20, 0xFF00FF00);
+            } else {
+                // Símbolo de Pausa
+                drawRect(228, 85, 6, 20, 0xFF00FFFF);
+                drawRect(244, 85, 6, 20, 0xFF00FFFF);
+            }
 
-        // 3. Dibujar Personaje 1 (Naruto - Rectángulo Naranja/Amarillo)
-        drawRect(p1_x, 155, 32, 55, 0xFF0077FF); 
+            // --- CONTROLES INFERIORES DE YOUTUBE ---
+            drawRect(0, 190, 480, 82, 0xFF212121);
 
-        // 4. Dibujar Personaje 2 (Rival - Rectángulo Rojo)
-        drawRect(p2_x, 155, 32, 55, 0xFF2222CC); 
+            // Barra de progreso del video
+            drawRect(30, 210, 420, 6, 0xFF555555); // Fondo de barra
+            drawRect(30, 210, progress, 6, 0xFF0000FF); // Barra roja de reproducción
+            // Cabezal de la barra
+            drawRect(30 + progress - 3, 207, 6, 12, 0xFFFFFFFF);
+
+            // Título del video reproduciéndose actualmente
+            // (Usamos un bloque de interfaz inferior simulando texto e info)
+            drawRect(30, 235, 250, 12, 0xFFFFFFFF);
+            drawRect(300, 235, 150, 10, 0xFFAAAAAA);
+        }
 
         sceGuFinish();
         sceGuSync(0, 0);
 
         sceDisplayWaitVblankStart();
-    t    sceGuSwapBuffers();
+        sceGuSwapBuffers();
     }
 
     sceGuTerm();
