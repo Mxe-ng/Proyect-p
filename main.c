@@ -1,4 +1,4 @@
-// "Undertale" - juego original para PSP (homebrew, PSPSDK)
+// "Corazon Esquiva" - juego original para PSP (homebrew, PSPSDK)
 // Esquiva proyectiles dentro de una caja y luego elige HABLAR o PERDONAR.
 // Musica y efectos: sintetizados en codigo (originales). Graficos: renderer por software.
 #include <pspkernel.h>
@@ -12,7 +12,7 @@
 #include <math.h>
 #include <ctype.h>
 
-PSP_MODULE_INFO("Undertale", 0, 1, 1);
+PSP_MODULE_INFO("CorazonEsquiva", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 
 #define SW 480
