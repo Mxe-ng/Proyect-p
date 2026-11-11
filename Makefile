@@ -5,6 +5,9 @@ CFLAGS = -O2 -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
+# Bibliotecas necesarias para gráficos en la PSP
+LIBS = -lpspgu -lpspgum -lm
+
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = Esquiva el Obstaculo 2D
 
