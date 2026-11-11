@@ -1,14 +1,14 @@
-TARGET = minijuego
+TARGET = CorazonEsquiva
 OBJS = main.o
 
 CFLAGS = -O2 -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
-LIBS = -lpspgu -lpspgum -lm
+LIBS = -lpspdebug -lpspdisplay -lpspge -lpspctrl -lm
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = YouTube Player PSP
+PSP_EBOOT_TITLE = Corazon Esquiva
 
-PSPSDK := $(shell psp-config --pspsdk-path)
+PSPSDK = $(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
